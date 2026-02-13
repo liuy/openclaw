@@ -149,6 +149,7 @@ export function applyMinimaxHostedConfig(
 export function applyMinimaxApiProviderConfig(
   cfg: OpenClawConfig,
   modelId: string = "MiniMax-M2.1",
+  customBaseUrl?: string,
 ): OpenClawConfig {
   const providers = { ...cfg.models?.providers };
   const existingProvider = providers.minimax;
@@ -164,7 +165,7 @@ export function applyMinimaxApiProviderConfig(
   const normalizedApiKey = resolvedApiKey?.trim() === "minimax" ? "" : resolvedApiKey;
   providers.minimax = {
     ...existingProviderRest,
-    baseUrl: MINIMAX_API_BASE_URL,
+    baseUrl: customBaseUrl ?? MINIMAX_API_BASE_URL,
     api: "anthropic-messages",
     ...(normalizedApiKey?.trim() ? { apiKey: normalizedApiKey } : {}),
     models: mergedModels.length > 0 ? mergedModels : [apiModel],
@@ -192,8 +193,9 @@ export function applyMinimaxApiProviderConfig(
 export function applyMinimaxApiConfig(
   cfg: OpenClawConfig,
   modelId: string = "MiniMax-M2.1",
+  customBaseUrl?: string,
 ): OpenClawConfig {
-  const next = applyMinimaxApiProviderConfig(cfg, modelId);
+  const next = applyMinimaxApiProviderConfig(cfg, modelId, customBaseUrl);
   return {
     ...next,
     agents: {
