@@ -45,6 +45,7 @@ import { createSubsystemLogger } from "openclaw/plugin-sdk/runtime-env";
 import { createNonExitingRuntime, type RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import { summarizeStringEntries } from "openclaw/plugin-sdk/text-runtime";
 import { resolveDiscordAccount } from "../accounts.js";
+import { ProxiedRequestClient } from "../client.js";
 import { fetchDiscordApplicationId } from "../probe.js";
 import { normalizeDiscordToken } from "../token.js";
 import { createDiscordVoiceCommand } from "../voice/command.js";
@@ -797,6 +798,24 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
       },
       clientPlugins,
     );
+    // Replace the default REST client with proxied version if proxy is configured
+    const proxyUrl = discordCfg.proxy?.trim();
+    if (proxyUrl) {
+      try {
+        const { ProxiedRequestClient } = await import("../client.js");
+        client.rest = new ProxiedRequestClient(token, proxyUrl);
+        runtime.log?.("discord: rest proxy enabled");
+      } catch (err) {
+        const proxyError = err instanceof Error ? err : new Error(String(err));
+        runtime.error?.(
+          danger(
+            `Failed to create proxied Discord client for account "${account.accountId}": ${proxyError.message}. Falling back to direct connection.`,
+          ),
+        );
+        // Keep the default (non-proxied) client.rest
+      }
+    }
+
     gatewaySupervisor = createDiscordGatewaySupervisor({
       client,
       isDisallowedIntentsError: isDiscordDisallowedIntentsError,
